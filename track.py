@@ -1,8 +1,8 @@
 import cv2
-import mediapipe as mp
 import time
+import mediapipe as mp
 import csv
-import numpy as np
+import pandas as pd
 
 lm_store = []
 
@@ -46,14 +46,31 @@ class poseDetector():
 
 
 def array_to_csv(arr):
-    arr = np.asarray(arr)
+    headings = ["Landmark", "X Pos", "Y Pos"]
     with open('sample.csv', 'w') as f:
-        mywriter = csv.writer(f, delimiter=',')
-        mywriter.writerows(arr)
+        my_writer = csv.writer(f, delimiter=',')
+        my_writer.writerow(headings)
+        my_writer.writerows(arr)
+
+
+def find_range(array, axis, landmark):
+    bottom = 0;
+    top = 0;
+    if axis == 'X' or axis ==  'x':
+        axis = 1
+    else:
+        axis = 2
+    for sub_array in array:
+        if sub_array[0] == landmark:
+            if sub_array[axis] < bottom:
+                bottom = sub_array[axis]
+            if sub_array[axis] > top:
+                top = sub_array[axis]
+    return top - bottom
 
 
 def main():
-    cap = cv2.VideoCapture('stock_squat.mp4')
+    cap = cv2.VideoCapture('stock-squat.mp4')
     pTime = 0
     detector = poseDetector()
     while True:
@@ -62,7 +79,7 @@ def main():
 
         lmList = detector.findPosition(img, draw=False)
         if len(lmList) != 0:
-            targets = [0, 11, 12, 13, 14, 15, 16, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32]
+            targets = [0, 13, 14]
             for target in targets:
 
                 print(lmList[target])
@@ -70,10 +87,9 @@ def main():
                 lm_store.append(lmList[target])
                 cv2.circle(img, (lmList[target][1], lmList[target][2]), 10, (255, 0, 255), cv2.FILLED)
 
-
-        cTime = time.time()
-        fps = 1 / (cTime - pTime)
-        pTime = cTime
+        c_time = time.time()
+        fps = 1 / (c_time - pTime)
+        pTime = c_time
 
         cv2.putText(img, str(int(fps)), (70, 50), cv2.FONT_HERSHEY_PLAIN, 3,
                     (255, 0, 0), 3)
@@ -84,6 +100,7 @@ def main():
         print(lm_store)
 
         array_to_csv(lm_store)
+        print("Squat Depth: ",  find_range(lm_store, "Y", 0))
 
 
 if __name__ == "__main__":
